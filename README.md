@@ -2,6 +2,7 @@
 
 俗名：垂直跑马灯  
 学名：垂直翻页公告
+单条 跑马灯 内容完整显示
 
 ### 效果图
 
@@ -11,7 +12,9 @@
 
 #### Gradle:
 
-    compile 'com.sunfusheng:marqueeview:1.2.0'
+    maven { url "https://jitpack.io" }
+
+    compile 'com.github.MasonLiuChn:MarqueeView:1.2.1'
 
 #### 属性
 
