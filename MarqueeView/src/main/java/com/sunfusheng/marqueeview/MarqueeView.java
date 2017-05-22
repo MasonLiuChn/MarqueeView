@@ -2,8 +2,8 @@ package com.sunfusheng.marqueeview;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -11,6 +11,9 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
+
+import com.ppdai.base.R;
+import com.sunfusheng.marqueeview.DisplayUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,19 +23,18 @@ import java.util.List;
  */
 public class MarqueeView extends ViewFlipper {
 
+    private static final int TEXT_GRAVITY_LEFT = 0, TEXT_GRAVITY_CENTER = 1, TEXT_GRAVITY_RIGHT = 2;
     private Context mContext;
-    private List<? extends CharSequence> notices;
+    private List<? extends CharSequence> notices = new ArrayList<>();
     private boolean isSetAnimDuration = false;
     private OnItemClickListener onItemClickListener;
-
+    private SparseArray<Integer> indexArray = new SparseArray<>();
     private int interval = 2000;
     private int animDuration = 500;
     private int textSize = 14;
     private int textColor = 0xffffffff;
-
     private boolean singleLine = false;
     private int gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
-    private static final int TEXT_GRAVITY_LEFT = 0, TEXT_GRAVITY_CENTER = 1, TEXT_GRAVITY_RIGHT = 2;
 
     public MarqueeView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -69,26 +71,24 @@ public class MarqueeView extends ViewFlipper {
         setFlipInterval(interval);
     }
 
-    // 根据公告字符串启动轮播
-    public void startWithText(final String notice) {
-        if (TextUtils.isEmpty(notice)) return;
+    // 根据公告字符串列表启动轮播
+    public void startWithList(final List<? extends CharSequence> notices) {
+        this.notices = new ArrayList<>();
+        this.indexArray = new SparseArray<>();
         getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                startWithFixedWidth(notice, getWidth());
+                for (int i = 0; i < notices.size(); i++) {
+                    startWithFixedWidth((String) notices.get(i), getWidth(), i);
+                }
+                start();
             }
         });
     }
 
-    // 根据公告字符串列表启动轮播
-    public void startWithList(List<? extends CharSequence> notices) {
-        setNotices(notices);
-        start();
-    }
-
     // 根据宽度和公告字符串启动轮播
-    private void startWithFixedWidth(String notice, int width) {
+    private void startWithFixedWidth(String notice, int width, int trueIndex) {
         int noticeLength = notice.length();
         int dpW = DisplayUtil.px2dip(mContext, width);
         int limit = dpW / textSize;
@@ -98,16 +98,17 @@ public class MarqueeView extends ViewFlipper {
         List list = new ArrayList();
         if (noticeLength <= limit) {
             list.add(notice);
+            indexArray.append(notices.size(), trueIndex);
         } else {
             int size = noticeLength / limit + (noticeLength % limit != 0 ? 1 : 0);
             for (int i = 0; i < size; i++) {
                 int startIndex = i * limit;
                 int endIndex = ((i + 1) * limit >= noticeLength ? noticeLength : (i + 1) * limit);
                 list.add(notice.substring(startIndex, endIndex));
+                indexArray.append(notices.size() + i, trueIndex);
             }
         }
         notices.addAll(list);
-        start();
     }
 
     // 启动轮播
@@ -123,7 +124,7 @@ public class MarqueeView extends ViewFlipper {
                 @Override
                 public void onClick(View v) {
                     if (onItemClickListener != null) {
-                        onItemClickListener.onItemClick(finalI, textView);
+                        onItemClickListener.onItemClick(indexArray.get(finalI), textView);
                     }
                 }
             });
@@ -138,7 +139,7 @@ public class MarqueeView extends ViewFlipper {
         return true;
     }
 
-    private void resetAnimation(){
+    private void resetAnimation() {
         clearAnimation();
 
         Animation animIn = AnimationUtils.loadAnimation(mContext, R.anim.anim_marquee_in);
@@ -162,18 +163,6 @@ public class MarqueeView extends ViewFlipper {
         return tv;
     }
 
-    public int getPosition() {
-        return (int) getCurrentView().getTag();
-    }
-
-    public List<? extends CharSequence> getNotices() {
-        return notices;
-    }
-
-    public void setNotices(List<? extends CharSequence> notices) {
-        this.notices = notices;
-    }
-
     public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
         this.onItemClickListener = onItemClickListener;
     }
@@ -183,3 +172,4 @@ public class MarqueeView extends ViewFlipper {
     }
 
 }
+
